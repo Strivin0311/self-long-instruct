@@ -1,0 +1,6 @@
+numpy
+matplotlib
+seaborn
+transformers
+langchain
+openai

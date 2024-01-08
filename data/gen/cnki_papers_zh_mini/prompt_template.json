@@ -1,0 +1,10 @@
+{
+    "input_variables": [
+        "input",
+        "instruction",
+        "output"
+    ],
+    "template": "给定以下一个描述某种任务的指令，以及由若干篇文档组成的输入以提供相关上下文信息，请根据上下文，恰当回答指令中的问题或请求\n\n### 指令:\n{instruction}\n\n### 输入:\n{input}\n\n### 回答:\n{output}",
+    "template_format": "f-string",
+    "partial_variables": {}
+}
