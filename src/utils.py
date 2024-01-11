@@ -3,6 +3,8 @@ from collections import defaultdict
 from typing import List, Tuple, Dict, Optional
 import contextlib
 import json
+import zipfile
+from tqdm import tqdm
 
 import random
 import numpy as np
@@ -116,3 +118,26 @@ def suppress_stderr():
     with open(os.devnull, 'w') as null:
         with contextlib.redirect_stderr(null):
             yield
+            
+
+def unzip_nltk_data(
+        nltk_data_dir: str,
+        remove: bool = True,
+    ):
+    """unzip all the zip files under the nltk_data directory into their corresponding directories
+    and optionally remove the original zip files"""
+    total_zip_files = 0
+    for root, _, files in os.walk(nltk_data_dir):
+        for file in files:
+            if file.endswith('.zip'): total_zip_files += 1
+            
+    print(f"There are {total_zip_files} zip files in the nltk_data directory to unzip")
+            
+    for root, _, files in tqdm(os.walk(nltk_data_dir), total=total_zip_files):
+        for file in files:
+            if file.endswith('.zip'):
+                file_path = os.path.join(root, file)
+                dir_path = os.path.dirname(file_path)
+                with zipfile.ZipFile(file_path, 'r') as zip_file:
+                    zip_file.extractall(dir_path)
+                if remove: os.remove(file_path)

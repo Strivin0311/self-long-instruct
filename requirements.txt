@@ -1,0 +1,16 @@
+numpy
+opencv
+matplotlib
+seaborn
+nltk
+transformers
+langchain
+openai
+unstructured
+unstructured-inference
+unstructured_pytesseract
+pikepdf
+pdf2image
+pdf2miner.six
+python-docx
+docx2txt
