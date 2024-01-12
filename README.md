@@ -37,4 +37,4 @@ The project to enhance the self-instruct method to long-context instruction tuni
     ```sh
     sudo apt-get install poppler-utils
     ```
-* 
+* follow the guide [here](https://www.libreoffice.org/get-help/install-howto/) and install the `LibreOffice` tool to make `unstructured.partition.doc` work

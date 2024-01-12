@@ -5,8 +5,9 @@ __pycache__/
 
 
 data/raw/
+data/gen/jiuzhou_scripts/
 
-exp/exp-script-review.ipynb
+exp/exp-jzscript-*.ipynb
 
 # C extensions
 *.so

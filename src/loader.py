@@ -2,11 +2,12 @@ import sys
 sys.path.append("..")
 
 import os
+import time
 from tqdm import tqdm
 from typing import List, Dict, Union, Optional
 
 from langchain.docstore.document import Document
-from langchain.document_loaders import PyPDFLoader, UnstructuredPDFLoader
+from langchain.document_loaders import PyPDFLoader, UnstructuredPDFLoader, UnstructuredFileLoader, TextLoader
 from langchain.document_loaders.word_document import Docx2txtLoader, UnstructuredWordDocumentLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
@@ -123,3 +124,23 @@ def load_pdf(
             docs.extend(loader.load_and_split(text_splitter))
     if verbose: print(info_str(f"Loaded {len(docs)} documents"))
     return docs
+
+
+def load_string(
+        string: str,
+        unstructured: bool = True,
+    ) -> str:
+    tmp_file_path = f"./tmp_{time.time()}.txt"
+    with open(tmp_file_path, 'w', encoding='utf-8') as f:
+        f.write(string)
+    
+    loader = UnstructuredFileLoader(tmp_file_path) if unstructured else TextLoader(tmp_file_path)
+    
+    docs = loader.load()
+    
+    new_string = "\n".join([doc.page_content for doc in docs])
+    
+    os.remove(tmp_file_path)
+    
+    return new_string
+    

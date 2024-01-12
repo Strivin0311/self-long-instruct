@@ -11,7 +11,21 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+from langchain.docstore.document import Document
 from langchain.prompts import PromptTemplate
+
+
+def print_doc_documents(
+        docs: List[Document],
+        header: bool = True,
+        metadata: bool = False,
+    ):
+    for i, doc in enumerate(docs):
+        if header:  print("="*20, f" Document {i+1} ", "="*20)
+        print(doc.page_content)
+        if metadata:
+            print("-"*20, f" metadata ", "-"*20)
+            print(f"source: {doc.metadata['source']} | emphasized: {doc.metadata.get('emphasized_text_contents', 'none')} | category: {doc.metadata['category']}")
 
 
 def save_instructions(
@@ -104,6 +118,26 @@ def print_qa_pairs(
                 print(f"answer{i+1}: ", qa_pair['answer'])
 
 
+def info_dict(d, t=1, precision=2) -> str:
+    s = "{\n"
+    for k, v in d.items():
+        s += "\t"*t + str(k)
+        s += " : "
+        if isinstance(v, dict):
+            vd = info_dict(v, t+1)
+            s += vd
+        else:
+            if isinstance(v, float):
+                if len(str(v)) > len("0.001"): s += f"{v:.{precision}e}"
+                else: s += str(v)
+            else: s += str(v)
+                    
+        s += "\n"
+    s +=  "\t"*(t-1) + "}"
+
+    return s
+    
+
 def info_str(center_content: str = "", 
             side_str: str = "=", 
             side_num: int = 25) -> str:
@@ -141,3 +175,4 @@ def unzip_nltk_data(
                 with zipfile.ZipFile(file_path, 'r') as zip_file:
                     zip_file.extractall(dir_path)
                 if remove: os.remove(file_path)
+                
