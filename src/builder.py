@@ -19,7 +19,7 @@ from src.utils import info_str
 def build_retriever(documents: List[Document], 
                     vs_type: str = "chroma", 
                     emb_type: str = "openai",
-                    retr_type: str = "mmr",
+                    retr_type: str = "similarity",
                     retr_kwargs: Optional[dict] = None,
                     verbose: bool = True,
                     ) -> Tuple[VectorStoreRetriever, Chroma]:
@@ -29,7 +29,7 @@ def build_retriever(documents: List[Document],
         documents (List[Document]): the list of documents
         vs_type (str, optional): vector store class type. Defaults to "chroma".
         emb_type (str, optional): embeddings class type. Defaults to "openai".
-        retr_type (str, optional): retriever search algorithm class type. Defaults to "mmr".
+        retr_type (str, optional): retriever search algorithm class type. Defaults to "similarity".
         retr_kwargs (Optional[dict], optional): kwargs for the retriever's search algorithm. Defaults to None to use the default parameters.
         verbose (bool, optional): whether to print the information. Defaults to True.
 
@@ -53,13 +53,20 @@ def build_retriever(documents: List[Document],
     vectorstore.add_documents(documents)
     
     # build retriever
-    if retr_type == "mmr":
+    if retr_type == "similarity":
+        retriever = vectorstore.as_retriever(
+            search_type="similarity",
+            search_kwargs={
+                "k": 5
+            } if retr_kwargs is None else retr_kwargs
+        )
+    elif retr_type == "mmr":
         retriever = vectorstore.as_retriever(
             search_type="mmr", # maximum marginal relevance
             search_kwargs={
                 "lambda_mult": 0.25, # the higher the value, the higher the diversity and the lower the relevance
             } if retr_kwargs is None else retr_kwargs 
-        ) 
+        )
     else: raise NotImplementedError(f"retriever type {retr_type} is not supported")
     
     if verbose: print(info_str(f"Built a {vs_type} retriever using the {retr_type} searching strategy, based on the {emb_type} embeddings for {len(documents)} documents", side_num=10))
@@ -129,5 +136,73 @@ Begin!\n\n<Begin Document>\n{doc}\n<End Document>"
     
     if verbose:
         print(info_str(f"Built a QA generation chain based on the {llm_type} LLM: {llm_name}", side_num=15))
+        
+    return chain
+
+
+def build_answer_gen_chain(
+        llm_name: str = "gpt-3.5-turbo-1106", # 16k
+        llm_type: str = "openai",
+        temperature: float = 0.8,
+        max_tokens: Optional[int] = None,
+        verbose: bool = True,
+    ) -> QAGenerateChain:
+    """build a answer generation chain to generate answers from the documents corresponding to the questions, maybe with some reference answers
+
+    Args:
+        llm_name (str, optional): the llm name. Defaults to "gpt-3.5-turbo-1106".
+        llm_type (str, optional): the llm type. Defaults to "openai".
+        temperature (float, optional): softmax temperature for generation creativity. Defaults to 0.1.
+        max_tokens (Optional[int], optional): maximum number of tokens to generate. Defaults to None to generate until the model stops.
+        verbose (bool, optional): whether to print the information. Defaults to True.
+
+    Returns:
+        QAGenerateChain: the answer generation chain
+    """
+    
+    # build the prompt template
+    prompt_template_str = "You are so professional and creative to coming up with answers to some given question. \n\
+Given the following document, please generate a bunch of answers corresponding to the question based on that document and the reference answer in the language of {language}.\n\n\
+Example Format:\n<Begin Document>\n...\n<End Document>\n\
+<QUESTION>:\nquestions here\n<REFERENCE>:\ncorresponding reference answer here\n<ANSWERS>:\ncorresponding new answers here organized as a list of strings seperated by newlines respectively\n\n\
+The new answers you are going to generate should be based on the specific content of the document, and obey the reference. \n\
+REMEMBER: all the generated answers (excluding the title <ANSWERS>) should use the language of {language}, except those like terms or abbreviations that are not used in {language} in that document.\n\
+Begin!\n\n<Begin Document>\n{doc}\n<End Document>\n\n<QUESTION>:\n{question}\n\n<REFERENCE>:\n{reference}\n"
+    
+    prompt_template = PromptTemplate(input_variables=["doc", "language", "question", "reference"], template=prompt_template_str)
+    
+    # build the output regex parser
+    output_parser = RegexParser(
+        # regex=r"<ANSWERS>:\n(.*?)$",
+        regex=r"<ANSWERS>:\n((?:.*?\n)+)",
+        output_keys=["answers"],
+        default_output_key="answers",
+    )
+    
+    if verbose: 
+        print(info_str(
+            f"\nThe prompt template for QA generation chain is as belows:\n{prompt_template_str}\n\n" + 
+            f"with input variables: {prompt_template.input_variables} | output parser: {output_parser}\n",
+            side_num=50
+        ))
+        
+    # build the llm
+    if llm_type == "openai":
+        llm = ChatOpenAI(
+            model_name=llm_name,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+    else: raise NotImplementedError(f"llm type {llm_type} is not supported")
+    
+    # build the chain
+    chain = QAGenerateChain(
+        llm=llm,
+        prompt=prompt_template,
+        output_parser=output_parser,
+    )
+    
+    if verbose:
+        print(info_str(f"Built a answer generation chain based on the {llm_type} LLM: {llm_name}", side_num=15))
         
     return chain

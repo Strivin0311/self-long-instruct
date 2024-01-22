@@ -129,7 +129,8 @@ def load_pdf(
 def load_string(
         string: str,
         unstructured: bool = True,
-    ) -> str:
+        return_str: bool = False,
+    ) -> Union[str, List[Document]]:
     tmp_file_path = f"./tmp_{time.time()}.txt"
     with open(tmp_file_path, 'w', encoding='utf-8') as f:
         f.write(string)
@@ -138,9 +139,11 @@ def load_string(
     
     docs = loader.load()
     
-    new_string = "\n".join([doc.page_content for doc in docs])
-    
     os.remove(tmp_file_path)
     
-    return new_string
+    if return_str:
+        new_string = "\n".join([doc.page_content for doc in docs])
+        return new_string
+    
+    return docs
     
